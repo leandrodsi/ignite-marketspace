@@ -3,8 +3,35 @@ import { Center, Heading, Text, VStack } from "native-base";
 import LogoSvg from "@assets/logo.svg";
 import { Button } from "@components/Button";
 import { Input } from "@components/Input";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { Controller, useForm } from "react-hook-form";
+
+import * as yup from "yup";
+
+interface SignInForm {
+  email: string;
+  password: string;
+}
+
+const signInSchema = yup.object({
+  email: yup.string().email().required(),
+  password: yup.string().required().min(8),
+});
 
 export const SignIn = () => {
+  const {
+    handleSubmit,
+    formState: { errors },
+    control,
+    setFocus,
+  } = useForm<SignInForm>({
+    resolver: yupResolver(signInSchema),
+  });
+
+  const handleSignIn = (data: SignInForm) => {
+    console.log("FORM DATA: ", data);
+  };
+
   return (
     <VStack flex={1}>
       <VStack
@@ -24,9 +51,45 @@ export const SignIn = () => {
           </Text>
 
           <Text mb={4}>Acesse sua conta</Text>
-          <Input placeholder="E-mail" />
-          <Input placeholder="Senha" password />
-          <Button w="full" label="Entrar" />
+          <Controller
+            name="email"
+            control={control}
+            render={({ field: { value, onChange } }) => (
+              <Input
+                mb="4"
+                value={value}
+                onChangeText={onChange}
+                autoCapitalize="none"
+                placeholder="E-mail"
+                keyboardType="email-address"
+                returnKeyType="next"
+                onSubmitEditing={() => setFocus("password")}
+                errorMessage={errors.email?.message}
+              />
+            )}
+          />
+          <Controller
+            name="password"
+            control={control}
+            render={({ field: { value, onChange, ref } }) => (
+              <Input
+                ref={ref}
+                mb="8"
+                value={value}
+                onChangeText={onChange}
+                placeholder="Senha"
+                password
+                returnKeyType="done"
+                onSubmitEditing={handleSubmit(handleSignIn)}
+                errorMessage={errors.password?.message}
+              />
+            )}
+          />
+          <Button
+            w="full"
+            label="Entrar"
+            onPress={handleSubmit(handleSignIn)}
+          />
         </Center>
       </VStack>
       <Center flex={1} px={12}>

@@ -4,7 +4,7 @@ import {
   Karla_700Bold,
   useFonts,
 } from "@expo-google-fonts/karla";
-import { RegisterProduct } from "@screens/RegisterProduct";
+import { SignUp } from "@screens/SignUp";
 import { NativeBaseProvider } from "native-base";
 import { THEME } from "./src/theme";
 
@@ -16,7 +16,7 @@ export default function App() {
 
   return (
     <NativeBaseProvider theme={THEME}>
-      {fontsLoaded ? <RegisterProduct /> : <Loading />}
+      {fontsLoaded ? <SignUp /> : <Loading />}
     </NativeBaseProvider>
   );
 }
