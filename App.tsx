@@ -1,10 +1,11 @@
 import { Loading } from "@components/Loading";
+import { AuthContextProvider } from "@contexts/AuthContext";
 import {
   Karla_400Regular,
   Karla_700Bold,
   useFonts,
 } from "@expo-google-fonts/karla";
-import { SignUp } from "@screens/SignUp";
+import { Routes } from "@routes/index";
 import { NativeBaseProvider } from "native-base";
 import { THEME } from "./src/theme";
 
@@ -16,7 +17,9 @@ export default function App() {
 
   return (
     <NativeBaseProvider theme={THEME}>
-      {fontsLoaded ? <SignUp /> : <Loading />}
+      <AuthContextProvider>
+        {fontsLoaded ? <Routes /> : <Loading />}
+      </AuthContextProvider>
     </NativeBaseProvider>
   );
 }

@@ -5,8 +5,12 @@ import {
   Money,
   QrCode,
 } from "phosphor-react-native";
+import { Dimensions } from "react-native";
 
-export const PAYMENT_METHODS = [
+export const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } =
+  Dimensions.get("screen");
+
+export const PAYMENT_METHODS_MAP = [
   { id: "invoice", label: "Boleto", icon: Barcode },
   { id: "pix", label: "Pix", icon: QrCode },
   { id: "money", label: "Dinheiro", icon: Money },

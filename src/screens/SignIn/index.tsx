@@ -1,4 +1,4 @@
-import { Center, Heading, Text, VStack } from "native-base";
+import { Center, Heading, Text, useToast, VStack } from "native-base";
 
 import LogoSvg from "@assets/logo.svg";
 import { Button } from "@components/Button";
@@ -6,6 +6,10 @@ import { Input } from "@components/Input";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Controller, useForm } from "react-hook-form";
 
+import { useAuth } from "@hooks/useAuth";
+import { useNavigation } from "@react-navigation/native";
+import { AppRoutesStackNavigatorProps } from "@routes/App.routes";
+import { formatErrorMessage } from "@utils/common";
 import * as yup from "yup";
 
 interface SignInForm {
@@ -27,9 +31,25 @@ export const SignIn = () => {
   } = useForm<SignInForm>({
     resolver: yupResolver(signInSchema),
   });
+  const { isLoadingUserStorageData, signIn } = useAuth();
+  const toast = useToast();
+  const navigation = useNavigation<AppRoutesStackNavigatorProps>();
 
-  const handleSignIn = (data: SignInForm) => {
-    console.log("FORM DATA: ", data);
+  const handleSignIn = async ({ email, password }: SignInForm) => {
+    try {
+      await signIn(email, password);
+    } catch (error) {
+      const title = formatErrorMessage(
+        error,
+        "Não foi possível acessar sua conta. Tente novamente mais tarde",
+      );
+
+      toast.show({
+        title: title,
+        placement: "top",
+        bgColor: "red.500",
+      });
+    }
   };
 
   return (
@@ -104,6 +124,8 @@ export const SignIn = () => {
             fontWeight: "bold",
             fontFamily: "heading",
           }}
+          onPress={() => navigation.navigate("sign-up")}
+          isLoading={isLoadingUserStorageData}
         />
       </Center>
     </VStack>

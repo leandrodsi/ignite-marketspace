@@ -1,42 +1,97 @@
 import { Input } from "@components/Input";
 import { ScreenFooter } from "@components/ScreenFooter";
 import { ScreenHeader } from "@components/ScreenHeader";
-import { useCurrencyInput } from "@hooks/useCurrencyInput";
-import { PAYMENT_METHODS } from "@utils/constants";
+import { yupResolver } from "@hookform/resolvers/yup";
+
+import { useNavigation } from "@react-navigation/native";
 import {
   Box,
   Checkbox,
-  FlatList,
+  FormControl,
   HStack,
-  IconButton,
-  Image,
   Radio,
   ScrollView,
   Switch,
   Text,
-  VStack,
   useTheme,
+  VStack,
 } from "native-base";
-import { ArrowLeft, Plus } from "phosphor-react-native";
-import { useState } from "react";
-import { Dimensions, SafeAreaView } from "react-native";
+import { ArrowLeft } from "phosphor-react-native";
+import { Controller, useForm } from "react-hook-form";
+import { SafeAreaView } from "react-native";
+import { TextInputMask } from "react-native-masked-text";
+import * as yup from "yup";
+import { ProductImagePicker } from "./components/ProductImagePicker";
 
-const { width: WIDTH } = Dimensions.get("screen");
-const IMAGE_SIZE = (WIDTH - 64) / 3;
+export const PAYMENT_METHODS = [
+  "invoice",
+  "pix",
+  "money",
+  "creditCard",
+  "bankDeposit",
+];
+
+interface FormRegisterProductProps {
+  images: string[];
+  name: string;
+  description: string;
+  is_new: "new" | "used";
+  price: string;
+  accept_trade: boolean;
+  payment_methods: string[];
+}
+
+const productSchema = yup.object({
+  images: yup
+    .array(yup.string().required("Adicione pelo menos uma imagem"))
+    .min(1, "Selecione pelo menos uma forma de pagamento")
+    .required("Adicione pelo menos uma imagem"),
+  name: yup.string().required("Informe o título do produto"),
+  description: yup.string().required("Informe uma descrição para o produto"),
+  is_new: yup
+    .string()
+    .oneOf(["new", "used"])
+    .required("Selecione o status do produto"),
+  price: yup.string().required("Informe o valor do produto"),
+  accept_trade: yup.boolean().required().default(false),
+  payment_methods: yup
+    .array(yup.string().required())
+    .min(1, "Selecione pelo menos uma forma de pagamento")
+    .required("Selecione pelo menos uma forma de pagamento"),
+});
 
 export const RegisterProduct = () => {
   const { colors } = useTheme();
-  const [value, setValue] = useCurrencyInput();
+  const navigation = useNavigation();
 
-  const [productState, setProductState] = useState("");
-  const [paymentMethods, setPaymentMethods] = useState([]);
+  const {
+    control,
+    formState: { errors },
+    handleSubmit,
+    setFocus,
+    watch,
+  } = useForm<FormRegisterProductProps>({
+    resolver: yupResolver(productSchema),
+    defaultValues: {
+      is_new: "new",
+    },
+  });
+
+  const handleRegisterProduct = (data: FormRegisterProductProps) => {
+    console.log("DATA: ", data);
+  };
+
+  console.log("ERRORS: ", errors);
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <VStack flex={1} bgColor="gray.100" space="6">
         <ScreenHeader
           title="Criar anúncio"
-          leftButton={{ icon: <ArrowLeft size={24} color="black" /> }}
+          leftButton={{
+            icon: <ArrowLeft size={24} color="black" />,
+            onPress: () => navigation.goBack(),
+          }}
         />
         <ScrollView _contentContainerStyle={{ px: 6 }}>
           <VStack space="8">
@@ -53,35 +108,22 @@ export const RegisterProduct = () => {
                 Escolha até 3 imagens para mostrar o quando o seu produto é
                 incrível!
               </Text>
-              <FlatList
-                data={["a", "b"]}
-                keyExtractor={(item) => item}
-                renderItem={() => (
-                  <Image
-                    w={IMAGE_SIZE}
-                    h={IMAGE_SIZE}
-                    source={{
-                      uri: "https://clicandoeandando.com/wp-content/uploads/2016/06/Como-tirar-fotos-melhores-com-qualquer-camera-plano-de-fundo.jpg",
-                    }}
-                    alt="imagem qualquer"
-                    borderRadius="md"
-                  />
-                )}
-                ListFooterComponent={() => (
-                  <IconButton
-                    w={IMAGE_SIZE}
-                    h={IMAGE_SIZE}
-                    borderRadius="md"
-                    bgColor="gray.300"
-                    icon={<Plus size="24" color={colors.gray[400]} />}
-                    ml="2"
-                  />
-                )}
-                ItemSeparatorComponent={() => <Box w="2" />}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                mt="4"
-              />
+              <FormControl isRequired isInvalid={"images" in errors}>
+                <Controller
+                  name="images"
+                  control={control}
+                  render={({ field: { onChange } }) => {
+                    const value = watch("images", []);
+
+                    return (
+                      <ProductImagePicker value={value} onChange={onChange} />
+                    );
+                  }}
+                />
+                <FormControl.ErrorMessage _text={{ color: "red.500" }}>
+                  {errors.images?.message}
+                </FormControl.ErrorMessage>
+              </FormControl>
             </VStack>
 
             <VStack space="4">
@@ -93,45 +135,73 @@ export const RegisterProduct = () => {
               >
                 Sobre o produto
               </Text>
-              <Input placeholder="Título do anúncio" />
-              <Input
-                placeholder="Descrição do produto"
-                numberOfLines={5}
-                multiline
-                h={160}
+              <Controller
+                name="name"
+                control={control}
+                render={({ field: { value, onChange } }) => (
+                  <Input
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="Título do anúncio"
+                    errorMessage={errors.name?.message}
+                  />
+                )}
+              />
+              <Controller
+                name="description"
+                control={control}
+                render={({ field: { value, onChange, ref } }) => (
+                  <Input
+                    ref={ref}
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="Descrição do produto"
+                    numberOfLines={5}
+                    multiline
+                    h={160}
+                    errorMessage={errors.description?.message}
+                    autoComplete="off"
+                    autoCorrect={false}
+                  />
+                )}
               />
 
-              <Radio.Group
-                name="myRadioGroup"
-                accessibilityLabel="product state"
-                value={productState}
-                onChange={(nextValue) => {
-                  setProductState(nextValue);
-                }}
-              >
-                <HStack>
-                  <Box flex={0.5}>
-                    <Radio
-                      value="new"
-                      size="sm"
-                      my={1}
-                      _text={{ color: "gray.500" }}
-                    >
-                      Produto novo
-                    </Radio>
-                  </Box>
-                  <Box flex={0.5}>
-                    <Radio
-                      value="used"
-                      size="sm"
-                      my={1}
-                      _text={{ color: "gray.500" }}
-                    >
-                      Produto usado
-                    </Radio>
-                  </Box>
-                </HStack>
-              </Radio.Group>
+              <Controller
+                name="is_new"
+                control={control}
+                render={({ field: { value, onChange } }) => (
+                  <Radio.Group
+                    name="state"
+                    accessibilityLabel="product state"
+                    defaultValue={value}
+                    value={value}
+                    onChange={onChange}
+                  >
+                    <HStack>
+                      <Box flex={0.5}>
+                        <Radio
+                          value="new"
+                          size="sm"
+                          my={1}
+                          _text={{ color: "gray.500" }}
+                        >
+                          Produto novo
+                        </Radio>
+                      </Box>
+                      <Box flex={0.5}>
+                        <Radio
+                          value="used"
+                          size="sm"
+                          my={1}
+                          _text={{ color: "gray.500" }}
+                        >
+                          Produto usado
+                        </Radio>
+                      </Box>
+                    </HStack>
+                  </Radio.Group>
+                )}
+              />
             </VStack>
 
             <VStack>
@@ -143,14 +213,27 @@ export const RegisterProduct = () => {
               >
                 Venda
               </Text>
-              <Input
-                leftElement={
-                  <Text pl="4" fontSize="16">
-                    R$
-                  </Text>
-                }
-                value={value}
-                onChangeText={setValue}
+              <Controller
+                name="price"
+                control={control}
+                render={({ field: { value, onChange, ref } }) => (
+                  <TextInputMask
+                    type="money"
+                    options={{ unit: "" }}
+                    value={value}
+                    onChangeText={onChange}
+                    customTextInput={Input}
+                    customTextInputProps={{
+                      ref,
+                      leftElement: (
+                        <Text pl="4" fontSize="16">
+                          R$
+                        </Text>
+                      ),
+                      errorMessage: errors.price?.message,
+                    }}
+                  />
+                )}
               />
             </VStack>
 
@@ -163,7 +246,13 @@ export const RegisterProduct = () => {
               >
                 Aceita troca?
               </Text>
-              <Switch />
+              <Controller
+                name="accept_trade"
+                control={control}
+                render={({ field: { value, onChange } }) => (
+                  <Switch value={value} onToggle={onChange} />
+                )}
+              />
             </VStack>
 
             <VStack>
@@ -175,33 +264,35 @@ export const RegisterProduct = () => {
               >
                 Meios de pagamento aceitos
               </Text>
-              <Checkbox.Group
-                // onChange={onChange} come from Controller (React Hook Form)
-                colorScheme="secondary"
-                _checkbox={{
-                  bgColor: "transparent",
-                }}
-                mt="3"
-              >
-                <VStack space="2">
-                  {PAYMENT_METHODS.map((method) => (
-                    <Checkbox
-                      key={method.id}
-                      value={method.id}
-                      _text={{ color: "gray.400" }}
-                      mb="1"
-                    >
-                      {method.label}
-                    </Checkbox>
-                  ))}
-                </VStack>
-              </Checkbox.Group>
+              <FormControl isRequired isInvalid={"payment_methods" in errors}>
+                <Controller
+                  name="payment_methods"
+                  control={control}
+                  render={({ field: { onChange } }) => (
+                    <Checkbox.Group onChange={onChange} colorScheme="primary">
+                      {PAYMENT_METHODS.map((value) => (
+                        <Checkbox
+                          key={value}
+                          value={value}
+                          _text={{ color: "gray.400" }}
+                          mb="1"
+                        >
+                          {value}
+                        </Checkbox>
+                      ))}
+                    </Checkbox.Group>
+                  )}
+                />
+                <FormControl.ErrorMessage _text={{ color: "red.500" }}>
+                  {errors.payment_methods?.message}
+                </FormControl.ErrorMessage>
+              </FormControl>
             </VStack>
           </VStack>
         </ScrollView>
         <ScreenFooter
-          leftButton={{ onPress: () => {} }}
-          rightButton={{ onPress: () => {} }}
+          leftButton={{ onPress: () => navigation.goBack() }}
+          rightButton={{ onPress: handleSubmit(handleRegisterProduct) }}
         />
       </VStack>
     </SafeAreaView>

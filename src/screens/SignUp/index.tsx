@@ -1,10 +1,11 @@
 import {
   Box,
   Center,
+  FormControl,
   Heading,
-  KeyboardAvoidingView,
   ScrollView,
   Text,
+  useToast,
   VStack,
 } from "native-base";
 
@@ -15,41 +16,140 @@ import { Input } from "@components/Input";
 import { Controller, useForm } from "react-hook-form";
 
 import { yupResolver } from "@hookform/resolvers/yup";
+import { useAuth } from "@hooks/useAuth";
+import { useNavigation } from "@react-navigation/native";
+import { AppRoutesStackNavigatorProps } from "@routes/App.routes";
+import { api } from "@services/api";
+import { formatErrorMessage } from "@utils/common";
+import * as FileSystem from "expo-file-system";
+import * as ImagePicker from "expo-image-picker";
+import { useState } from "react";
+import { KeyboardAvoidingView, Platform } from "react-native";
+import { TextInputMask } from "react-native-masked-text";
 import * as yup from "yup";
 
 interface SignUpForm {
+  avatar: string;
   name: string;
   email: string;
-  phone: string;
+  tel: string;
   password: string;
   passwordConfirmation: string;
 }
 
 const signUpSchema = yup.object({
-  name: yup.string().required(),
-  email: yup.string().required(),
-  phone: yup.string().required(),
-  password: yup.string().required(),
+  avatar: yup.string().required("Adicione uma imagem para o usuário"),
+  name: yup.string().required("Informe um nome de usuário"),
+  email: yup
+    .string()
+    .email("Informe um e-mail válido")
+    .required("Informe um e-mail"),
+  tel: yup.string().required("Informe seu número de telefone"),
+  password: yup
+    .string()
+    .min(8, "Informe pelo menos 8 dígitos")
+    .required("Informe uma senha"),
   passwordConfirmation: yup
     .string()
-    .oneOf([yup.ref("password")])
-    .required(),
+    .oneOf([yup.ref("password")], "As senhas não conferem")
+    .required("Informe a confirmação da senha"),
 });
 
 export const SignUp = () => {
+  const toast = useToast();
   const {
     control,
     formState: { errors },
     handleSubmit,
     setFocus,
   } = useForm({ resolver: yupResolver(signUpSchema) });
+  const { signIn } = useAuth();
+  const navigation = useNavigation<AppRoutesStackNavigatorProps>();
 
-  const handleSignUp = (form: SignUpForm) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSignUp = async (form: SignUpForm) => {
     console.log("SIGN UP FORM: ", form);
+    setIsLoading(true);
+    const { avatar, passwordConfirmation, ...user } = form;
+
+    const userFormData = new FormData();
+
+    Object.entries(form).map(([key, value]) => {
+      userFormData.append(key, value);
+    });
+
+    const fileExtension = form.avatar.split(".").pop();
+    const photoFile = {
+      name: `${user.name.split(" ").join("_")}.${fileExtension}`.toLowerCase(),
+      uri: avatar,
+      type: `image/${fileExtension}`,
+    } as any;
+    userFormData.append("avatar", photoFile);
+
+    try {
+      await api.post("/users", userFormData);
+
+      const { email, password } = user;
+
+      signIn(email, password);
+    } catch (error) {
+      const title = formatErrorMessage(
+        error,
+        "Não foi possível criar sua conta. Tente novamente mais tarde.",
+      );
+
+      toast.show({
+        title: title,
+        placement: "top",
+        bgColor: "red.500",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleChangePhoto = async (onChange: (path: string) => void) => {
+    const photoSelected = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 1,
+      aspect: [4, 4],
+      allowsEditing: true,
+      allowsMultipleSelection: false,
+    });
+
+    if (photoSelected.canceled) {
+      return;
+    }
+
+    if (photoSelected.assets[0].uri) {
+      const photoInfo = await FileSystem.getInfoAsync(
+        photoSelected.assets[0].uri,
+        { size: true },
+      );
+
+      if (
+        photoInfo.exists &&
+        photoInfo.size &&
+        photoInfo.size / 1024 / 1024 > 5
+      ) {
+        return toast.show({
+          title: "Essa imagem é muito grande. Escolha uma de até 5 MB.",
+          placement: "top",
+          bgColor: "red.500",
+        });
+      }
+
+      const photoSelectedData = photoSelected.assets[0].uri;
+
+      onChange(photoSelectedData);
+    }
   };
 
   return (
-    <KeyboardAvoidingView>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       <Box bgColor="gray.100">
         <ScrollView>
           <Center flex={1} px={12} py={16} justifyContent="space-between">
@@ -62,10 +162,27 @@ export const SignUp = () => {
               seus produtos.
             </Text>
 
-            <Avatar.Root mb={4}>
-              <Avatar.Image />
-              <Avatar.ButtonChange />
-            </Avatar.Root>
+            <Controller
+              name="avatar"
+              control={control}
+              render={({ field: { value, onChange } }) => (
+                <FormControl
+                  isInvalid={!!errors.avatar?.message}
+                  alignItems="center"
+                  mb="4"
+                >
+                  <Avatar.Root>
+                    <Avatar.Image uri={value} />
+                    <Avatar.ButtonChange
+                      onPress={() => handleChangePhoto(onChange)}
+                    />
+                  </Avatar.Root>
+                  <FormControl.ErrorMessage _text={{ color: "red.500" }}>
+                    {errors.avatar?.message}
+                  </FormControl.ErrorMessage>
+                </FormControl>
+              )}
+            />
 
             <VStack w="full" space="4">
               <Controller
@@ -95,23 +212,29 @@ export const SignUp = () => {
                     autoCapitalize="none"
                     placeholder="E-mail"
                     returnKeyType="next"
-                    onSubmitEditing={() => setFocus("phone")}
+                    onSubmitEditing={() => setFocus("tel")}
                     errorMessage={errors.email?.message}
                   />
                 )}
               />
               <Controller
-                name="phone"
+                name="tel"
                 control={control}
                 render={({ field: { value, onChange, ref } }) => (
-                  <Input
-                    ref={ref}
+                  <TextInputMask
+                    // ref={ref}
+                    type="cel-phone"
                     value={value}
                     onChangeText={onChange}
                     placeholder="Telefone"
+                    keyboardType="number-pad"
                     returnKeyType="next"
                     onSubmitEditing={() => setFocus("password")}
-                    errorMessage={errors.phone?.message}
+                    customTextInput={Input}
+                    customTextInputProps={{
+                      ref,
+                      errorMessage: errors.tel?.message,
+                    }}
                   />
                 )}
               />
@@ -155,6 +278,7 @@ export const SignUp = () => {
               bgColor="black"
               mt={6}
               onPress={handleSubmit(handleSignUp)}
+              isLoading={isLoading}
             />
 
             <Center w="full" py="12" mt="14">
@@ -171,6 +295,7 @@ export const SignUp = () => {
                   fontWeight: "bold",
                   fontFamily: "heading",
                 }}
+                onPress={() => navigation.navigate("sign-in")}
               />
             </Center>
           </Center>

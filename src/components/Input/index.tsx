@@ -52,7 +52,7 @@ export const Input = forwardRef(
                     />
                   }
                   size={5}
-                  mr="2"
+                  mx="2"
                   color="muted.400"
                 />
               </Pressable>

@@ -1,15 +1,7 @@
 import { Avatar } from "@components/Avatar";
 import { ImageCarousel } from "@components/Carousel";
 import { PaymentType } from "@components/PaymentType";
-import {
-  Center,
-  HStack,
-  Heading,
-  ScrollView,
-  Text,
-  VStack,
-  View,
-} from "native-base";
+import { Center, Heading, HStack, ScrollView, Text, VStack } from "native-base";
 import {
   Bank,
   Barcode,
@@ -18,29 +10,23 @@ import {
   QrCode,
 } from "phosphor-react-native";
 
-type ProductDetailsTemplateProps = { active?: boolean };
+type ProductDetailsTemplateProps = { product: any; active?: boolean };
 
 export const ProductDetailsTemplate = ({
+  product,
   active,
 }: ProductDetailsTemplateProps) => {
   return (
-    <View flex={1}>
+    <VStack flex={1}>
       <ScrollView _contentContainerStyle={{ pb: 12, bgColor: "gray.100" }}>
-        <ImageCarousel
-          active={active}
-          data={[
-            "https://melhorbike.com/wp-content/uploads/as-10-bicicletas-mais-caras.png",
-            "https://melhorbike.com/wp-content/uploads/as-10-bicicletas-mais-caras.png",
-            "https://melhorbike.com/wp-content/uploads/as-10-bicicletas-mais-caras.png",
-          ]}
-        />
+        <ImageCarousel active={active} data={product.images} />
 
         <VStack px="6" pt="5">
           <HStack>
             <Avatar.Root w={6} h={6}>
-              <Avatar.Image />
+              <Avatar.Image source={product.seller.image} />
             </Avatar.Root>
-            <Text ml="2">Makenna Baptista</Text>
+            <Text ml="2">{product.seller.name}</Text>
           </HStack>
 
           <Center
@@ -52,13 +38,13 @@ export const ProductDetailsTemplate = ({
             mt="6"
           >
             <Text fontSize="10" fontWeight="bold" fontFamily="heading">
-              NOVO
+              {product.is_new}
             </Text>
           </Center>
 
           <HStack justifyContent="space-between" mt="2">
             <Heading fontSize="20" fontWeight="bold" fontFamily="heading">
-              Bicicleta
+              {product.name}
             </Heading>
             <HStack alignItems="baseline">
               <Text
@@ -76,29 +62,27 @@ export const ProductDetailsTemplate = ({
                 fontWeight="bold"
                 fontFamily="heading"
               >
-                120,00
+                {product.value}
               </Text>
             </HStack>
           </HStack>
 
           <Text fontSize="14" color="gray.800">
-            Cras congue cursus in tortor sagittis placerat nunc, tellus arcu.
-            Vitae ante leo eget maecenas urna mattis cursus. Mauris metus amet
-            nibh mauris mauris accumsan, euismod. Aenean leo nunc, purus iaculis
-            in aliquam.
+            {product.description}
           </Text>
 
           <HStack mt="6">
             <Text fontSize="14" fontWeight="bold" fontFamily="heading">
               Aceita troca?
             </Text>
-            <Text fontSize="14">Sim</Text>
+            <Text fontSize="14">{product.accept_trade}</Text>
           </HStack>
 
           <Text fontSize="14" fontWeight="bold" fontFamily="heading" mt="4">
             Meios de pagamento:
           </Text>
           <VStack mt="2" space="1">
+            {/* {product.} */}
             <PaymentType icon={<Barcode size={18} />} label="boleto" />
             <PaymentType icon={<QrCode size={18} />} label="pix" />
             <PaymentType icon={<Money size={18} />} label="dinheiro" />
@@ -110,6 +94,6 @@ export const ProductDetailsTemplate = ({
           </VStack>
         </VStack>
       </ScrollView>
-    </View>
+    </VStack>
   );
 };

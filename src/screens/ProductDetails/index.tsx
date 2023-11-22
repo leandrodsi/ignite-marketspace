@@ -1,14 +1,20 @@
 import { Button } from "@components/Button";
 import { ScreenHeader } from "@components/ScreenHeader";
+import { useNavigation } from "@react-navigation/native";
 import { ProductDetailsTemplate } from "@templates/ProductDetailsTemplate";
 import { HStack, Text, VStack } from "native-base";
 import { ArrowLeft, WhatsappLogo } from "phosphor-react-native";
 
 export const ProductDetails = () => {
+  const navigation = useNavigation();
+
   return (
     <VStack flex={1} py={8}>
       <ScreenHeader
-        leftButton={{ icon: <ArrowLeft size={24} color="black" /> }}
+        leftButton={{
+          icon: <ArrowLeft size={24} color="black" />,
+          onPress: () => navigation.goBack(),
+        }}
       />
       <ProductDetailsTemplate />
       <HStack

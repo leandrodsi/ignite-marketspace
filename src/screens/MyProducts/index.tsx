@@ -1,5 +1,7 @@
 import { CardProductItem } from "@components/CardProductItem";
 import { ScreenHeader } from "@components/ScreenHeader";
+import { useNavigation } from "@react-navigation/native";
+import { AuthRoutesBottomTabsNavigatorProps } from "@routes/Auth.routes";
 import { CheckIcon, FlatList, HStack, Select, Text, VStack } from "native-base";
 import { Plus } from "phosphor-react-native";
 import { useState } from "react";
@@ -90,6 +92,7 @@ const products = [
 ];
 
 export const MyProducts = () => {
+  const navigation = useNavigation<AuthRoutesBottomTabsNavigatorProps>();
   const [selected, setSelected] = useState("all");
 
   return (
@@ -97,7 +100,10 @@ export const MyProducts = () => {
       <VStack pt="4">
         <ScreenHeader
           title="Meus anúncios"
-          rightButton={{ icon: <Plus size="24" color="black" /> }}
+          rightButton={{
+            icon: <Plus size="24" color="black" />,
+            onPress: () => navigation.navigate("register-product"),
+          }}
         />
         <VStack px="6" mt="5">
           <HStack alignItems="center" justifyContent="space-between">
